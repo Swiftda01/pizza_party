@@ -1,0 +1,148 @@
+
+<h2>Previous Orders:</h2>
+<ul> 
+  <% @orders.each do |order| %>
+    <li><%= link_to "#{order.cust_name} - #{order.address} - #{order.date} #{order.time}" %></li>
+  <% end %>
+</ul>
+
+<br><br><hr><br><br>
+
+<%= form_for @order do |f| %>
+  <%= f.label 'name' %>  <%= f.text_field :cust_name %>
+  <%= f.label 'address' %>  <%= f.text_field :address %>
+  <%= f.label 'time' %>  <%= f.text_field :time %>
+  <%= f.submit 'Submit' %>
+<% end %>
+
+<br><br><hr><br><br>
+
+<div id="container">
+  <input type="text" id="pizzaName">
+  <input type="button" id="createPizza" value="Create Pizza">
+</div>
+
+<div id="toppings">
+
+</div>
+
+<script>
+  $(function () {
+    // GET ORDERS JSON DATA
+    $.get("/orders.json", function (data) {
+      authenticityToken = data.authenticity_token;
+      data.orders.forEach(function (order){
+        // AMEND ORDER HERE
+      });
+    });
+
+    // GET PIZZAS JSON DATA
+    $.get("/pizzas.json", function (data) {
+      authenticityToken = data.authenticity_token;
+      data.pizzas.forEach(function (pizza){
+        loadPizza(pizza);
+      });
+    });
+
+    // CREATE TOPPINGS AND MAKE THEM DRAGGABLE
+    var beingDragged = null;
+    $.get("/toppings.json", function (data) {
+      data.forEach(function (topping) {
+        var toppingDiv = $('<div id="topping' + topping.id.toString() + '" draggable="true">' + topping.name + '</div>');
+        $("#toppings").append(toppingDiv);
+        toppingDiv.on("dragstart", function (e) {
+          if (e.originalEvent) {
+            e = e.originalEvent;
+            e.dataTransfer.setData("application/x-id", this.id);
+          }
+          console.log("dragging!");
+          e.dataTransfer.effectAllowed = "copy";
+          beingDragged = this;
+          e.stopPropagation();
+        });
+      });
+    });
+
+    // SET 'beingDragged' TO NULL WHEN TOPPING IS DROPPED
+    $("body").on("dragend", function (e) {
+      console.log("dragend!");
+      beingDragged = null;
+    });
+
+    // ALLOW PIZZA TO BE CREATED USING 'ENTER' KEY
+    $("#pizzaName").keypress(function (event) {
+      if (event.keyCode == 13) {
+        createPizza();
+      }
+    });
+
+    // ALLOW PIZZA TO BE CREATED BY CLICKING 'createPizza' BUTTON
+    $("#createPizza").click(function () {
+      createPizza();
+    });
+
+    // CREATE PIZZA
+    function createPizza() {
+      var pizzaName = $("#pizzaName");
+      if (pizzaName.val() != "" && authenticityToken != null) {
+        $.post("/pizzas",
+          {name: pizzaName.val(), authenticity_token: authenticityToken},
+          function (pizza) {
+            loadPizza(pizza);
+          }
+        );
+      }
+      pizzaName.val(""); 
+    }
+
+    function loadPizza(pizza) {
+      if (pizza.id) {
+        var pizzaID = pizza.id.toString();
+        var pizzaDiv = $('<div id="pizza' + pizzaID + '" class="pizza-base">' + pizza.name +
+          '<input type="button" id="delete' + pizzaID + '" value="X">' +
+          "</div>");
+        $("#container").append(pizzaDiv);
+        console.log("Created", pizzaID);
+        pizzaDiv.on("dragover", function (e) {
+          $("#event").html("drag over " + this.id);
+          if (e.originalEvent)    // FF
+            e = e.originalEvent;
+          e.dataTransfer.effectAllowed = "copy";    // FF
+          e.preventDefault();
+        }).on("drop", function (e) {
+          console.log(beingDragged.id, this.id);
+          $.ajax({
+            type: 'patch',
+            url: '/pizzas/' + pizzaID + '.json',
+            data: {
+              authenticity_token: authenticityToken,
+              topping_id: beingDragged.id
+            }
+          }).done(function (x) {
+
+          });
+        }).on("mouseup", function (e) {
+          // This hack is here ONLY to support testing on Selenium + Firefox
+          // (The real user interaction of releasing the mouse button
+          //  causes drop and not mouseup!!)
+          if (beingDragged != null) {
+            var evt = document.createEvent('DragEvent');
+            evt.initEvent("drop", true, true);
+            this.dispatchEvent(evt);
+          }
+        });
+        $("#delete" + pizzaID).click(function () {
+          console.log("Deleting", pizzaID);
+          $.ajax({
+            type: "delete",
+            url: "/pizzas/" + pizzaID,
+            data: {authenticity_token: authenticityToken}
+          }).done(function (pizza) {
+            $('#pizza' + pizzaID).remove()
+          });
+        });
+      }
+    }
+  });
+
+</script>
