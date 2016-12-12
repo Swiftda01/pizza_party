@@ -14,6 +14,20 @@ class PizzasController < ApplicationController
     end
   end
 
+  def show
+    @pizza = Pizza.find_by(id: params[:id])
+    respond_to do |format|
+      format.html {}
+      format.json do
+        render json: sanitize({
+          pizza: @pizza,
+          pizza_toppings: @pizza.toppings
+        })
+      end
+    end
+
+  end
+
   def new
     @pizza = Pizza.new
   end

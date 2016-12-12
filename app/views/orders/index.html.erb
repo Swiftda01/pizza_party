@@ -9,22 +9,26 @@
 <br><br><hr><br><br>
 
 <%= form_for @order do |f| %>
-  <%= f.label 'name' %>  <%= f.text_field :cust_name %>
-  <%= f.label 'address' %>  <%= f.text_field :address %>
-  <%= f.label 'time' %>  <%= f.text_field :time %>
-  <%= f.submit 'Submit' %>
+  <%= f.label "name" %>  <%= f.text_field :cust_name %>
+  <%= f.label "address" %>  <%= f.text_field :address %>
+  <%= f.label "time" %>  <%= f.text_field :time %>
+  <%= f.submit "Submit" %>
 <% end %>
 
 <br><br><hr><br><br>
 
 <div id="container">
+  <label>Name Your Pizza:</label>
   <input type="text" id="pizzaName">
-  <input type="button" id="createPizza" value="Create Pizza">
+  <input type="button" id="addPizza" value="Next"><br>
 </div>
 
-<div id="toppings">
-
+<div id="select-sauce">
+  <label>Choose Your Sauce:</label>
+  <div id="tomato" class="button">Tomato</div><div id="barbecue" class="button">Barbecue</div>
 </div>
+
+<div id="toppings"></div>
 
 <script>
   $(function () {
@@ -48,7 +52,7 @@
     var beingDragged = null;
     $.get("/toppings.json", function (data) {
       data.forEach(function (topping) {
-        var toppingDiv = $('<div id="topping' + topping.id.toString() + '" draggable="true">' + topping.name + '</div>');
+        var toppingDiv = $('<div id="topping' + topping.id.toString() + '" class="topping" draggable="true"><h3>' + topping.name + '</h3><img src="assets/images/' + topping.name.toLowerCase() + '.png" alt="' + topping.name + '" draggable="false"/></div>');
         $("#toppings").append(toppingDiv);
         toppingDiv.on("dragstart", function (e) {
           if (e.originalEvent) {
@@ -63,12 +67,6 @@
       });
     });
 
-    // SET 'beingDragged' TO NULL WHEN TOPPING IS DROPPED
-    $("body").on("dragend", function (e) {
-      console.log("dragend!");
-      beingDragged = null;
-    });
-
     // ALLOW PIZZA TO BE CREATED USING 'ENTER' KEY
     $("#pizzaName").keypress(function (event) {
       if (event.keyCode == 13) {
@@ -76,8 +74,8 @@
       }
     });
 
-    // ALLOW PIZZA TO BE CREATED BY CLICKING 'createPizza' BUTTON
-    $("#createPizza").click(function () {
+    // ALLOW PIZZA TO BE CREATED BY CLICKING 'addPizza' BUTTON
+    $("#addPizza").click(function () {
       createPizza();
     });
 
@@ -95,12 +93,11 @@
       pizzaName.val(""); 
     }
 
+    // LOAD PIZZAS TO PAGE / ALLOW TOPPINGS TO BE DROPPED ON THEM / ALLOW THEM TO BE DELETED
     function loadPizza(pizza) {
       if (pizza.id) {
         var pizzaID = pizza.id.toString();
-        var pizzaDiv = $('<div id="pizza' + pizzaID + '" class="pizza-base">' + pizza.name +
-          '<input type="button" id="delete' + pizzaID + '" value="X">' +
-          "</div>");
+        var pizzaDiv = $('<div id="pizza' + pizzaID + '" class="pizza"><h3>' + pizza.name + '</h3><div class="pizza-base"><input type="button" id="delete' + pizzaID + '" value="X"></div><div id="pizza' + pizzaID + 'toppings"></div></div>');
         $("#container").append(pizzaDiv);
         console.log("Created", pizzaID);
         pizzaDiv.on("dragover", function (e) {
@@ -112,21 +109,25 @@
         }).on("drop", function (e) {
           console.log(beingDragged.id, this.id);
           $.ajax({
-            type: 'patch',
-            url: '/pizzas/' + pizzaID + '.json',
+            type: "patch",
+            url: "/pizzas/" + pizzaID + ".json",
             data: {
               authenticity_token: authenticityToken,
               topping_id: beingDragged.id
             }
           }).done(function (x) {
+            var newTopping = $("#" + beingDragged.id)
+            $("#pizza" + pizzaID + "toppings").append(newTopping.text() + " ")
 
+            console.log("dragend!");
+            beingDragged = null;
           });
         }).on("mouseup", function (e) {
           // This hack is here ONLY to support testing on Selenium + Firefox
           // (The real user interaction of releasing the mouse button
           //  causes drop and not mouseup!!)
           if (beingDragged != null) {
-            var evt = document.createEvent('DragEvent');
+            var evt = document.createEvent("DragEvent");
             evt.initEvent("drop", true, true);
             this.dispatchEvent(evt);
           }
@@ -138,11 +139,32 @@
             url: "/pizzas/" + pizzaID,
             data: {authenticity_token: authenticityToken}
           }).done(function (pizza) {
-            $('#pizza' + pizzaID).remove()
+            $("#pizza" + pizzaID).remove()
           });
         });
       }
     }
+
+    // SWITCH TOPPING - WILL EVENTUALLY HAVE TOGGLE BUTTON TO DRY UP CODE AND WILL
+    // SAVE USER CHOICE IN DATABASE
+    $("#tomato").click(function () {
+      $(".pizza-base").css({
+        "width": "320px",
+        "height": "320px",
+        "background-color": "#931009",
+        "border": "15px solid #FFF8AA"
+      });
+    });
+
+    $("#barbecue").click(function () {
+      $(".pizza-base").css({
+        "width": "320px",
+        "height": "320px",
+        "background-color": "#351810",
+        "border": "15px solid #FFF8AA"
+      });
+    });
+
   });
 
 </script>

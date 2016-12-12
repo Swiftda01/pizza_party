@@ -18,7 +18,7 @@ module SeedData
       end
       unless Topping.find_by(name: "Ham")
         @ham = Topping.create(name: "Ham")
-        @mushroom = Topping.create(name: "mushroom")
+        @mushroom = Topping.create(name: "Mushroom")
       end
     end
   end

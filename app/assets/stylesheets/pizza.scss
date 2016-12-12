@@ -1,8 +1,31 @@
+@import 'colors';
+
+.pizza {
+  display: inline-block;
+  border: 1px solid black;
+  margin: 20px;
+  padding: 10px;
+}
 
 .pizza-base {
-  width: 300px;
-  height: 300px;
+  width: 350px;
+  height: 350px;
   border-radius: 50%;
   background-color: #FFF8AA;
   margin: 20px;
+  img {
+    position: absolute;
+    top: 440px;
+    width: 300px;
+    height: 300px;
+  }
+}
+
+.button {
+  display: inline-block;
+  width: 80px;
+  text-align: center;
+  margin: 10px;
+  padding: 5px;
+  border: 1px solid black;
 }
